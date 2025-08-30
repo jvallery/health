@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="test" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Sample Route</name>
+    <trkseg>
+      <trkpt lat="39.7392" lon="-104.9903"><ele>1600.0</ele><time>2025-08-29T21:00:00Z</time></trkpt>
+      <trkpt lat="39.7482" lon="-104.9903"><ele>1601.0</ele><time>2025-08-29T21:10:00Z</time></trkpt>
+      <trkpt lat="39.7572" lon="-104.9903"><ele>1602.0</ele><time>2025-08-29T21:20:00Z</time></trkpt>
+      <trkpt lat="39.7662" lon="-104.9903"><ele>1600.5</ele><time>2025-08-29T21:30:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+  </gpx>
+

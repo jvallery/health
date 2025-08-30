@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+  <Workout workoutActivityType="HKWorkoutActivityTypeWalking" duration="30" durationUnit="min" sourceName="Apple Watch" sourceVersion="9.0" device="Apple Watch" creationDate="2025-08-29 15:31:00 -0600" startDate="2025-08-29 15:00:00 -0600" endDate="2025-08-29 15:30:00 -0600" totalDistance="3.0" totalDistanceUnit="km" totalEnergyBurned="200" totalEnergyBurnedUnit="kcal">
+    <MetadataEntry key="HKAverageHeartRate" value="120"/>
+    <MetadataEntry key="HKMaximumHeartRate" value="140"/>
+    <MetadataEntry key="HKMinimumHeartRate" value="90"/>
+  </Workout>
+</HealthData>
+
