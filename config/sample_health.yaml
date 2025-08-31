@@ -1,0 +1,12 @@
+tz: America/Denver
+weather: off
+sex: M
+step_goal: 10000
+stride_m: 0.78
+weight_goal: 200
+start: null
+end: null
+cutoff_start: 2017-01-01
+height_cm: null
+height_cm: 185.4
+weight_roc: false

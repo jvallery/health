@@ -1,0 +1,2 @@
+days,total_steps,total_miles_est,avg_steps_per_day,median_steps_per_day,p90_steps,days_goal_hit,goal_hit_rate,best_day_date,best_day_steps,worst_nonzero_date,worst_nonzero_steps
+2829,27020275.0,13095.936532988679,9551.17532697066,7267.0,21907.400000000012,1004,0.35489572287027216,2024-06-06,68880.0,2017-08-10,15.0

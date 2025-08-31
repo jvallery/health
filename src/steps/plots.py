@@ -38,13 +38,20 @@ def _save(fig: plt.Figure, path: Path) -> str:
 
 def plot_daily_with_rolling(daily: pd.DataFrame, out_dir: Path) -> str:
     fig, ax = plt.subplots(figsize=(10, 4))
-    d = daily.sort_values("date").copy()
-    s = d["steps"].where(d["steps"] > 0, np.nan)
-    ax.plot(d["date"], s, color=BASE_BLUE, linewidth=1.2, label="daily", zorder=3)
+    d = daily.copy()
+    d["date"] = pd.to_datetime(d["date"], errors="coerce")
+    d = d.sort_values("date")
+    if not d.empty:
+        idx = pd.date_range(d["date"].min(), d["date"].max(), freq="D")
+        d = d.set_index("date").reindex(idx).rename_axis("date").reset_index()
+    s = pd.to_numeric(d["steps"], errors="coerce")
+    # Light daily series
+    ax.plot(d["date"], s, color=GREY_MED, linewidth=0.8, alpha=0.35, label="daily", zorder=1)
+    # Rolling means
     r7 = s.rolling(7, min_periods=3).mean()
     r30 = s.rolling(30, min_periods=7).mean()
     ax.plot(d["date"], r7, color=BLUE_LIGHT, linewidth=1.6, label="7‑day avg", zorder=2)
-    ax.plot(d["date"], r30, color=GREY_MED, linewidth=1.8, label="30‑day avg", zorder=2)
+    ax.plot(d["date"], r30, color=BASE_BLUE, linewidth=2.4, label="30‑day avg", zorder=3)
     ax.set_title("Daily Steps with Rolling Averages")
     ax.set_xlabel("Date")
     ax.set_ylabel("Steps")
@@ -57,8 +64,16 @@ def plot_daily_with_rolling(daily: pd.DataFrame, out_dir: Path) -> str:
 
 def plot_weekly_steps(weekly_df: pd.DataFrame, out_dir: Path) -> str:
     fig, ax = plt.subplots(figsize=(9, 4))
-    y = weekly_df["total_steps"].where(weekly_df["total_steps"] > 0, np.nan)
-    ax.plot(weekly_df["week_start"], y, color=BASE_BLUE, linewidth=1.8)
+    d = weekly_df.copy()
+    d["week_start"] = pd.to_datetime(d["week_start"], errors="coerce")
+    d = d.sort_values("week_start")
+    if not d.empty:
+        idx = pd.date_range(d["week_start"].min(), d["week_start"].max(), freq="W-MON")
+        d = d.set_index("week_start").reindex(idx).rename_axis("week_start").reset_index()
+    y = pd.to_numeric(d["total_steps"], errors="coerce")
+    ax.plot(d["week_start"], y, color=GREY_MED, linewidth=1.0, alpha=0.4, label="weekly")
+    r8 = y.rolling(8, min_periods=2).mean()
+    ax.plot(d["week_start"], r8, color=BASE_BLUE, linewidth=2.2, label="8‑wk avg")
     ax.set_title("Weekly Total Steps")
     ax.set_xlabel("Week start")
     ax.set_ylabel("Steps")
@@ -85,10 +100,23 @@ def plot_monthly_totals_and_goal_days(monthly_df: pd.DataFrame, cfg, out_dir: Pa
 
 def plot_yearly_totals(yearly_df: pd.DataFrame, out_dir: Path) -> str:
     fig, ax = plt.subplots(figsize=(8, 4))
-    ax.bar(yearly_df["year"].astype(str), yearly_df["total_steps"], color=BASE_BLUE, zorder=3)
+    y = pd.to_numeric(yearly_df["total_steps"], errors="coerce")
+    ax.bar(yearly_df["year"].astype(str), y, color=BASE_BLUE, zorder=3)
+    # Human‑friendly y-axis: plain numbers or millions with suffix
+    try:
+        import matplotlib.ticker as mticker
+        maxv = float(y.max()) if len(y) else 0.0
+        if maxv >= 1_000_000:
+            ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, pos: f"{x/1_000_000:.1f}M"))
+            ax.set_ylabel("Steps (millions)")
+        else:
+            ax.yaxis.set_major_formatter(mticker.StrMethodFormatter('{x:,.0f}'))
+            ax.set_ylabel("Steps")
+        ax.ticklabel_format(axis='y', style='plain')
+    except Exception:
+        ax.set_ylabel("Steps")
     ax.set_title("Yearly Total Steps")
     ax.set_xlabel("Year")
-    ax.set_ylabel("Steps")
     return _save(fig, out_dir / "steps_yearly_totals.png")
 
 
@@ -150,28 +178,38 @@ def _calendar_matrix_for_year(daily: pd.DataFrame, year: int) -> np.ndarray:
     return mat
 
 
-def plot_calendar_heatmap(daily: pd.DataFrame, year: int, out_dir: Path, vmin: float | None, vmax: float | None) -> str:
+def plot_calendar_heatmap(
+    daily: pd.DataFrame,
+    year: int,
+    out_dir: Path,
+    vmin: float | None,
+    vmax: float | None,
+    *,
+    title_prefix: str = "Steps",
+    metric_label: str = "Steps",
+    filename_prefix: str = "calendar_steps",
+) -> str:
     fig, ax = plt.subplots(figsize=(12, 2.8))
     mat = _calendar_matrix_for_year(daily, year)
     im = ax.imshow(mat, aspect="auto", origin="lower", cmap="Blues", interpolation="nearest", vmin=vmin, vmax=vmax)
     ax.set_yticks(range(7))
     ax.set_yticklabels(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
     ax.set_xticks([])
-    ax.set_title(f"{year} Steps Calendar")
+    ax.set_title(f"{year} {title_prefix} Calendar")
     cbar = fig.colorbar(im, ax=ax, orientation="vertical")
-    cbar.set_label("Steps")
-    return _save(fig, out_dir / f"calendar_steps_{year}.png")
+    cbar.set_label(metric_label)
+    return _save(fig, out_dir / f"{filename_prefix}_{year}.png")
 
 
 def plot_weekly_goal_pct(weekly_df: pd.DataFrame, out_dir: Path) -> str:
     fig, ax = plt.subplots(figsize=(9, 4))
     pct = weekly_df["goal_days"] / weekly_df["days"].replace(0, np.nan)
-    ax.plot(weekly_df["week_start"], pct, color=BASE_BLUE, linewidth=1.0, alpha=0.6, label="weekly")
-    # 4-week rolling average for readability
-    r4 = pct.rolling(4, min_periods=2).mean()
-    ax.plot(weekly_df["week_start"], r4, color=GREY_MED, linewidth=1.8, label="4‑wk avg")
+    ax.plot(weekly_df["week_start"], pct, color=GREY_MED, linewidth=1.0, alpha=0.3, label="weekly")
+    # emphasize smoother trend
+    r8 = pct.rolling(8, min_periods=2).mean()
+    ax.plot(weekly_df["week_start"], r8, color=BASE_BLUE, linewidth=2.2, label="8‑wk avg")
     ax.set_ylim(0, 1)
-    ax.axhline(1.0, color=BLUE_DARK, linewidth=0.8, alpha=0.4)
+    ax.axhline(1.0, color=BLUE_DARK, linewidth=0.8, alpha=0.2)
     ax.set_title("Weekly Goal Adherence")
     ax.set_xlabel("Week start")
     ax.set_ylabel("Goal %")

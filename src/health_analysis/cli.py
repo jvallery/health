@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
+import json
 
 import click
 import numpy as np
@@ -19,12 +21,38 @@ def _enough(df: pd.DataFrame, col: str, n: int = 30) -> bool:
         return False
 
 
+def _maybe_load_config(config_path: str | None) -> dict:
+    candidates: list[Path] = []
+    if config_path:
+        candidates.append(Path(config_path))
+    candidates += [Path("health.yaml"), Path("health.json"), Path("config/health.yaml"), Path("config/health.json")]
+    for p in candidates:
+        if p.exists():
+            if p.suffix.lower() in {".yaml", ".yml"}:
+                try:
+                    import yaml  # type: ignore
+
+                    with open(p, "r") as fh:
+                        data = yaml.safe_load(fh) or {}
+                    if isinstance(data, dict):
+                        return data
+                except Exception:
+                    continue
+            if p.suffix.lower() == ".json":
+                try:
+                    return json.loads(p.read_text())
+                except Exception:
+                    continue
+    return {}
+
+
 @click.command(name="analyze-health")
 @click.option("--xml", "xml_path", type=click.Path(exists=True, dir_okay=False), default="apple_health_export/export.xml", show_default=True)
 @click.option("--out", "out_dir", type=click.Path(file_okay=False), default="out/health", show_default=True)
-@click.option("--tz", "tz_name", default="America/Denver", show_default=True)
-@click.option("--weight-goal", "weight_goal_lb", type=float, default=None, help="Optional weight goal (lb) for overlay")
-def analyze_health(xml_path: str, out_dir: str, tz_name: str, weight_goal_lb: float | None) -> None:
+@click.option("--tz", "tz_name", default=lambda: os.getenv("HEALTH_TZ", "America/Denver"), show_default=True)
+@click.option("--weight-goal", "weight_goal_lb", type=float, default=lambda: float(os.getenv("WEIGHT_GOAL_LB", "nan")), help="Optional weight goal (lb) for overlay")
+@click.option("--config", "config_path", type=click.Path(exists=True, dir_okay=False), default=None, help="Optional YAML/JSON config path")
+def analyze_health(xml_path: str, out_dir: str, tz_name: str, weight_goal_lb: float | None, config_path: str | None) -> None:
     out = Path(out_dir)
     tdir = out / "tables"
     pdir = out / "plots"
@@ -32,7 +60,15 @@ def analyze_health(xml_path: str, out_dir: str, tz_name: str, weight_goal_lb: fl
     tdir.mkdir(parents=True, exist_ok=True)
     pdir.mkdir(parents=True, exist_ok=True)
 
-    # Wire config
+    # Load config (CLI > YAML > env > default)
+    cfg_file = _maybe_load_config(config_path)
+    if (weight_goal_lb is None) or (isinstance(weight_goal_lb, float) and np.isnan(weight_goal_lb)):
+        weight_goal_lb = (
+            cfg_file.get("weight_goal_lb")
+            or (cfg_file.get("body", {}) or {}).get("weight_goal_lb")
+            or None
+        )
+    tz_name = tz_name or cfg_file.get("tz") or os.getenv("HEALTH_TZ", "America/Denver")
     cfg = HealthConfig(tz=tz_name, weight_goal_lb=weight_goal_lb, out_weight_lb=True)
 
     # Whitelist types to parse
@@ -127,7 +163,8 @@ def analyze_health(xml_path: str, out_dir: str, tz_name: str, weight_goal_lb: fl
     slope = T.weight_slope(body_df, to_lb=True) if not body_df.empty else None
     r_corr, n_corr = T.rhr_vo2_corr(vitals_df) if not vitals_df.empty else (None, 0)
     if not vitals_df.empty and "hrv_sdnn_ms" in vitals_df:
-        T.hrv_low_flags(vitals_df, out=tdir)
+        thr = cfg_file.get("thresholds", {}).get("hrv_low_ms", 20.0) if isinstance(cfg_file, dict) else 20.0
+        T.hrv_low_flags(vitals_df, threshold_ms=float(thr), out=tdir)
 
     # 3) Plots
     if not body_df.empty:
@@ -189,3 +226,5 @@ def analyze_health(xml_path: str, out_dir: str, tz_name: str, weight_goal_lb: fl
     )
     click.echo(f"[health] Report → {report_path}")
 
+if __name__ == "__main__":  # pragma: no cover
+    analyze_health()

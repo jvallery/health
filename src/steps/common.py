@@ -36,7 +36,8 @@ def normalize_daily(df: pd.DataFrame, cfg: StepsConfig) -> pd.DataFrame:
     d["dow"] = d["date"].dt.day_name()
     d["year"] = d["date"].dt.year
     d["month"] = d["date"].dt.to_period("M").astype(str)
-    d["week_start"] = d["date"].dt.to_period("W-MON").dt.start_time
+    # Week start (Monday). Using W-MON.start_time returns Tuesday; compute directly.
+    d["week_start"] = d["date"].dt.normalize() - pd.to_timedelta(d["date"].dt.weekday, unit="D")
     d["goal_hit"] = d["steps"] >= max(1, int(cfg.step_goal))
     d["miles_est"] = pd.to_numeric(d["steps"], errors="coerce") * float(cfg.stride_m) / 1609.34
 
@@ -46,4 +47,3 @@ def normalize_daily(df: pd.DataFrame, cfg: StepsConfig) -> pd.DataFrame:
     if cfg.end:
         d = d[d["date"] <= pd.to_datetime(cfg.end)]
     return d
-

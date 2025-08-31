@@ -9,6 +9,18 @@ def daily_rollups(daily: pd.DataFrame) -> pd.DataFrame:
     d = daily.copy()
     d["date"] = pd.to_datetime(d["date"])
     out = d.set_index("date").sort_index()
+    # Treat zeros as missing for vitals that cannot be 0 physiologically
+    for col in [
+        "rhr_bpm",
+        "hrv_sdnn_ms",
+        "vo2max_mlkgmin",
+        "walking_hr_avg_bpm",
+        "respiratory_rate_bpm",
+        "spo2_pct",
+    ]:
+        if col in out:
+            s = pd.to_numeric(out[col], errors="coerce")
+            out[col] = s.where(s > 0)
     if "rhr_bpm" in out:
         out["rhr_7d"] = out["rhr_bpm"].rolling(7, min_periods=2).mean()
     if "hrv_sdnn_ms" in out:

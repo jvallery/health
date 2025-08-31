@@ -1,0 +1,68 @@
+###############################################################################
+# Health Analytics Pipeline Configuration
+#
+# This file centralizes goals, thresholds, and IO settings used by the
+# analytics/plots. CLI precedence: CLI flags > this file > env vars > defaults.
+###############################################################################
+
+# General
+tz: America/Denver
+out_dir: out/health
+
+# Inputs (used by convenience wrappers; health_analysis CLI only needs xml)
+inputs:
+  xml: apple_health_export/export.xml
+  routes_dir: apple_health_export/workout-routes
+
+# Steps (used by steps CLI; tracked here for consistency)
+steps:
+  step_goal: 10000            # daily steps goal
+  stride_m: 0.78              # meters per step estimate
+  weekly_goal_days_min: 5     # desired days per week reaching goal
+
+# Body
+body:
+  weight_goal_lb: 200         # overlay line on weight plot
+  bmi_goal: 25.0              # reference only (not enforced yet)
+  body_fat_pct_goal: 22.0     # reference only
+  weight_slope_lb_per_week_target: -1.0  # desired trend (neg = loss)
+
+# Vitals
+vitals:
+  rhr_target_bpm_range: [50, 60]   # informative band for reports
+  vo2max_goal: 40.0                # mL/kg·min, reference
+  bp_target_mmhg: {systolic: 120, diastolic: 80}  # reference
+
+# Thresholds used by flags/annotations
+thresholds:
+  hrv_low_ms: 20.0            # days below flagged in hrv_low_flags.csv
+  spo2_low_pct: 92.0          # potential low SpO2 reference
+  respiratory_bpm_range: [12, 20]
+
+# Sleep
+sleep:
+  minutes_asleep_goal: 420    # 7 hours
+  efficiency_min: 0.85        # asleep / in-bed lower bound
+
+# Energy
+energy:
+  active_kcal_daily_goal: 700 # reference target
+  active_share_goal_pct: 35   # % of total kcal from active
+
+# Alerts & Exposure
+alerts:
+  hr_alerts_monthly_max: 0    # aim to have zero
+audio_exposure:
+  weekly_events_max: 10
+  safe_level_db: 70           # reference; OSHA/WHO contexts vary
+
+# Running/Training (used by analysis suite; tracked here for completeness)
+training:
+  weekly_miles_goal: 25
+  monthly_miles_goal: 100
+  pr_targets:
+    - {distance: 1mi, time_mmss: "07:00"}
+    - {distance: 5k,  time_mmss: "24:00"}
+    - {distance: 10k, time_mmss: "50:00"}
+    - {distance: half, time_mmss: "1:50:00"}
+
