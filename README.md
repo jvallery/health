@@ -12,6 +12,16 @@ Key capabilities
 Example output
 - Start here: out/reports/index.md (committed) — this page links to all sections and includes a quick “Data Summary” and charts.
 
+Quick gallery
+
+![Workouts by Activity](out/plots/summary/summary_workouts_by_activity.png)
+
+![Monthly Miles and # Runs](out/plots/running/run_monthly_miles_and_runs.png)
+
+![Monthly Median Pace](out/plots/running/run_monthly_median_pace.png)
+
+![Steps: Daily with 30D](out/plots/steps/steps_daily_rolling.png)
+
 What’s included (sections)
 - Running: monthly miles and runs, median pace (mm:ss), weekly mileage, load (TRIMP, A:C), PR timeline, devices, outliers, multi‑year calendars (miles/day, newest → oldest).
 - Steps: daily/weekly/monthly views, goal adherence, distribution, DoW effects, correlations, cumulative vs goal per year, yearly totals (human‑friendly units), calendars (newest → oldest).
@@ -67,6 +77,38 @@ PYTHONPATH=src .venv/bin/python -m healthkit.cli analyze \
 5) Browse reports
 - Open out/reports/index.md — it links to Running, Steps, Body, Vitals, Sleep, and Alerts.
 
+FAQ / tips
+- Why do “Runs” include Walking? We purposely merge Running + Walking (indoor/outdoor) so volume and frequency reflect all foot‑based sessions. Pace‑based charts still use effective pace (lower is faster) and you can filter in code if you prefer only Running.
+- My Peloton workouts don’t show in pace charts. Apple exports often omit distance for Peloton sessions. They count in totals and source charts, but without distance they won’t appear in pace/distance plots.
+- It’s slow to rebuild from scratch. Use the two‑step flow: run `convert` once, then iterate with `analyze --in-normalized out` to re‑render plots quickly.
+- Time window: set `--start YYYY-MM-DD` and/or `--end` or set `cutoff_start` in `config/sample_health.yaml`.
+- Units: weight plots render in lb; BMI uses height from data or `height_cm` in config.
+- Calendars: Running calendars show daily miles; Steps calendars show daily steps. Both render newest → oldest in reports.
+
+Validation checklist
+```bash
+# Running calendars exist
+ls -1 out/plots/running | grep calendar_runs_
+
+# All PNGs embedded in Running (expect no output)
+comm -3 <(ls -1 out/plots/running | sort) \
+        <(rg -o "../plots/running/[^)]+" out/reports/running.md | sed 's#../plots/running/##' | sort) | cat
+
+# Index overview contains top plots
+rg -n "Overview|run_monthly_miles_and_runs|steps_daily_rolling|body_weight_trend" out/reports/index.md
+```
+
+Project structure
+- `src/healthkit/cli.py` — pipeline entry points (`convert`, `analyze`).
+- `src/healthkit/reports.py` — Markdown writers and index.
+- `src/healthkit/plots.py` — general plotting helpers and style.
+- `src/steps/*` — steps analysis and plots.
+- `src/analysis/*` — running analytics (trends, load, devices, PRs, routes).
+- `out/` — generated tables, plots, and Markdown reports.
+
+Contributing
+- Issues and PRs welcome. Please exclude personal data (`apple_health_export/`) from commits; the repo already ignores it.
+
 Configuration
 - See `config/sample_health.yaml` for defaults like `cutoff_start` and `height_cm`.
 - Command‑line flags on `analyze` let you set goals (steps/weight), stride, time window, etc.
@@ -100,4 +142,3 @@ pytest -q
 
 Versioning and data privacy
 - Don’t commit `apple_health_export/` (ignored). The generated `out/` reports and tables are committed for reproducibility and easy sharing.
-
