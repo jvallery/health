@@ -1,6 +1,6 @@
 # Apple Health Analytics Toolkit
 
-Turn your Apple Health export into a rich, self‑contained analytics report: normalized tables, plots, and Markdown pages you can browse in GitHub or VS Code.
+Turn your Apple Health export into a rich, self‑contained analytics report: normalized tables, plots, and Markdown pages you can browse in GitHub, Obsidian, or VS Code.
 
 Key capabilities
 - Convert Apple Health export (export.xml + GPX routes + ECG CSVs) into clean Parquet/CSV tables.
