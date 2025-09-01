@@ -11,6 +11,7 @@ Key capabilities
 
 Example output
 - Start here: out/reports/index.md (committed) — this page links to all sections and includes a quick “Data Summary” and charts.
+[Index](./out/reports/index.md) | [Running](./out/reports/running.md) | [Steps](./out/reports/steps.md) | [Body](./out/reports/body.md) | [Vitals](./out/reports/vitals.md) | [Sleep](./out/reports/sleep.md) | [Alerts](./out/reports/alerts.md)
 
 Quick gallery
 
